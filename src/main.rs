@@ -1,6 +1,6 @@
 use crate::{
     exit_handler::ExitHandler, local_clipboard::LocalClipboard, mpclipboard::MPClipboard,
-    tray::Tray,
+    timer::Timer, tray::Tray,
 };
 use anyhow::{Context as _, Result};
 use ksni::blocking::TrayMethods;
@@ -8,6 +8,7 @@ use ksni::blocking::TrayMethods;
 mod exit_handler;
 mod local_clipboard;
 mod mpclipboard;
+mod timer;
 mod tray;
 
 fn main() -> Result<()> {
@@ -17,23 +18,27 @@ fn main() -> Result<()> {
     let tray = Tray::new(exit_handler.clone())
         .spawn()
         .context("failed to spawn Tray")?;
+    let mut timer = Timer::new();
 
     while exit_handler.keep_running() {
-        if let Some(text) = clipboard.read()? {
-            tray.update(|tray| tray.push_local(&text));
-            MPClipboard::send(text);
-        }
-        if let Some(event) = MPClipboard::recv() {
-            if let Some(connectivity) = event.connectivity {
-                tray.update(|tray| tray.set_connectivity(connectivity));
+        if timer.passed(10) {
+            if let Some(text) = clipboard.read()? {
+                tray.update(|tray| tray.push_local(&text));
+                MPClipboard::send(text);
             }
+            if let Some(event) = MPClipboard::recv() {
+                if let Some(connectivity) = event.connectivity {
+                    tray.update(|tray| tray.set_connectivity(connectivity));
+                }
 
-            if let Some(text) = event.text {
-                clipboard.write(&text)?;
-                tray.update(|tray| tray.push_received(&text));
+                if let Some(text) = event.text {
+                    clipboard.write(&text)?;
+                    tray.update(|tray| tray.push_received(&text));
+                }
             }
         }
-        std::thread::sleep(std::time::Duration::from_millis(1000));
+
+        timer.tick(100);
     }
 
     log::info!("exiting...");
