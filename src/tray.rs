@@ -3,10 +3,27 @@ use crate::exit_handler::ExitHandler;
 pub(crate) struct Tray {
     connected: bool,
     exit: ExitHandler,
+    events: Vec<TrayEvent>,
 }
 
-const GREEN: &[u8] = include_bytes!("../assets/green-32x32.rgba");
-const RED: &[u8] = include_bytes!("../assets/red-32x32.rgba");
+enum TrayEvent {
+    PushedFromLocal(String),
+    ReceivedFromServer(String),
+}
+
+impl From<&TrayEvent> for ksni::menu::MenuItem<Tray> {
+    fn from(event: &TrayEvent) -> Self {
+        let label = match event {
+            TrayEvent::PushedFromLocal(text) => format!("-> {text}"),
+            TrayEvent::ReceivedFromServer(text) => format!("<- {text}"),
+        };
+        Self::Standard(ksni::menu::StandardItem {
+            label,
+            enabled: false,
+            ..Default::default()
+        })
+    }
+}
 
 impl ksni::Tray for Tray {
     fn id(&self) -> String {
@@ -14,6 +31,8 @@ impl ksni::Tray for Tray {
     }
 
     fn icon_pixmap(&self) -> Vec<ksni::Icon> {
+        const GREEN: &[u8] = include_bytes!("../assets/green-32x32.rgba");
+        const RED: &[u8] = include_bytes!("../assets/red-32x32.rgba");
         let bytes = if self.connected { GREEN } else { RED };
 
         vec![ksni::Icon {
@@ -24,17 +43,23 @@ impl ksni::Tray for Tray {
     }
 
     fn menu(&self) -> Vec<ksni::MenuItem<Self>> {
-        let exit = self.exit.clone();
+        use ksni::menu::*;
 
-        vec![
-            ksni::menu::StandardItem {
-                label: "Quit".to_string(),
-                icon_name: "application-exit".into(),
-                activate: Box::new(move |_| exit.trigger_manually()),
-                ..Default::default()
-            }
-            .into(),
-        ]
+        self.events
+            .iter()
+            .map(MenuItem::from)
+            .chain([
+                MenuItem::Separator,
+                MenuItem::Standard(StandardItem {
+                    label: "Quit".to_string(),
+                    activate: {
+                        let exit = self.exit.clone();
+                        Box::new(move |_| exit.trigger_manually())
+                    },
+                    ..Default::default()
+                }),
+            ])
+            .collect()
     }
 }
 
@@ -43,10 +68,27 @@ impl Tray {
         Self {
             connected: false,
             exit,
+            events: vec![],
         }
     }
 
     pub(crate) fn set_connectivity(&mut self, connectivity: bool) {
         self.connected = connectivity;
+    }
+
+    pub(crate) fn push_local(&mut self, text: &str) {
+        self.push(TrayEvent::PushedFromLocal(text.to_string()))
+    }
+    pub(crate) fn push_received(&mut self, text: &str) {
+        self.push(TrayEvent::ReceivedFromServer(text.to_string()))
+    }
+
+    const MAX_EVENTS: usize = 5;
+
+    fn push(&mut self, event: TrayEvent) {
+        self.events.push(event);
+        if self.events.len() > Self::MAX_EVENTS {
+            self.events.remove(0);
+        }
     }
 }

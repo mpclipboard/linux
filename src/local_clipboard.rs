@@ -55,12 +55,12 @@ impl LocalClipboard {
         Ok(Some(text))
     }
 
-    pub(crate) fn write(&mut self, text: String) -> Result<()> {
+    pub(crate) fn write(&mut self, text: &str) -> Result<()> {
         use wl_clipboard_rs::copy::{MimeType, Options, Source, copy};
         let options = Options::default();
         copy(
             options,
-            Source::Bytes(text.into_bytes().into_boxed_slice()),
+            Source::Bytes(text.to_string().into_bytes().into_boxed_slice()),
             MimeType::Text,
         )
         .context("failed to write contents to clipboard")?;
