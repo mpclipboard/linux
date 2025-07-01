@@ -11,7 +11,6 @@ mod tray;
 fn main() -> Result<()> {
     MPClipboard::start()?;
     Exit::setup_handler()?;
-    let clipboard = Clipboard::new();
     let tray = Tray::new()?;
 
     let mut timer = Timer::new(Duration::from_millis(100));
@@ -26,7 +25,6 @@ fn main() -> Result<()> {
 
     timer.add(1, {
         let tray = tray.clone();
-        let clipboard = clipboard.clone();
         move || {
             if let Some(event) = MPClipboard::recv() {
                 if let Some(connectivity) = event.connectivity {
@@ -34,7 +32,7 @@ fn main() -> Result<()> {
                 }
 
                 if let Some(text) = event.text {
-                    clipboard.write(&text);
+                    Clipboard::write(&text);
                     tray.push_received(&text);
                 }
             }
@@ -43,19 +41,9 @@ fn main() -> Result<()> {
     });
 
     timer.add(10, move || {
-        if let Some(text) = clipboard.read() {
+        if let Some(text) = Clipboard::read() {
             tray.push_local(&text);
             MPClipboard::send(text);
-        }
-        if let Some(event) = MPClipboard::recv() {
-            if let Some(connectivity) = event.connectivity {
-                tray.set_connectivity(connectivity);
-            }
-
-            if let Some(text) = event.text {
-                clipboard.write(&text);
-                tray.push_received(&text);
-            }
         }
         ControlFlow::Continue(())
     });

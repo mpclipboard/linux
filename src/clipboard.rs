@@ -1,43 +1,49 @@
 use anyhow::{Context as _, Result};
 use std::{cell::RefCell, io::Read as _, rc::Rc};
 
-pub(crate) struct Clipboard {
-    last: Rc<RefCell<Option<String>>>,
-    buf: Rc<RefCell<Vec<u8>>>,
+thread_local! {
+    static LAST: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(None));
+    static BUF: Rc<RefCell<Vec<u8>>> = Rc::new(RefCell::new(vec![0; 1_024]));
 }
 
+fn with_state<F, T>(f: F) -> T
+where
+    F: FnOnce(&mut Option<String>, &mut Vec<u8>) -> T,
+{
+    LAST.with(|last| {
+        BUF.with(|buf| {
+            let mut last = last.borrow_mut();
+            let mut buf = buf.borrow_mut();
+            f(&mut last, &mut buf)
+        })
+    })
+}
+
+pub(crate) struct Clipboard;
+
 impl Clipboard {
-    pub(crate) fn new() -> Rc<Self> {
-        Rc::new(Self {
-            last: Rc::new(RefCell::new(None)),
-            buf: Rc::new(RefCell::new(vec![0; 1_024])),
+    pub(crate) fn read() -> Option<String> {
+        with_state(|last, buf| {
+            let text = match read_text(buf) {
+                Ok(Some(text)) => text,
+                Ok(None) => return None,
+                Err(err) => {
+                    log::error!("{err:?}");
+                    return None;
+                }
+            };
+
+            if last.as_ref().is_some_and(|v| v == &text) {
+                None
+            } else {
+                let text = text.to_string();
+                *last = Some(text.clone());
+                Some(text)
+            }
         })
     }
 
-    pub(crate) fn read(&self) -> Option<String> {
-        let mut buf = self.buf.borrow_mut();
-
-        let text = match read_text(&mut buf) {
-            Ok(text) => text?,
-            Err(err) => {
-                log::error!("{err:?}");
-                return None;
-            }
-        };
-
-        let mut last = self.last.borrow_mut();
-
-        if last.as_ref().is_some_and(|v| v == text) {
-            return None;
-        }
-
-        let text = text.to_string();
-        *last = Some(text.clone());
-
-        Some(text)
-    }
-
-    pub(crate) fn write(&self, text: &str) {
+    pub(crate) fn write(text: &str) {
         if let Err(err) = write_text(text) {
             log::error!("{err:?}");
         }
