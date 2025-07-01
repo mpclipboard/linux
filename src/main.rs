@@ -1,3 +1,5 @@
+use std::{thread::sleep, time::Duration};
+
 use crate::{
     exit::Exit, local_clipboard::LocalClipboard, mpclipboard::MPClipboard, timer::Timer, tray::Tray,
 };
@@ -19,8 +21,12 @@ fn main() -> Result<()> {
     }?;
     let mut timer = Timer::new();
 
+    const TICK_IN_MS: u64 = 100;
+    const ACT_EVERY_IN_MS: u64 = 1000;
+    const ACT_EVERY_IN_TICKS: u64 = ACT_EVERY_IN_MS / TICK_IN_MS;
+
     while exit.received() {
-        if timer.passed(10) {
+        if timer.passed(ACT_EVERY_IN_TICKS) {
             if let Some(text) = clipboard.read() {
                 tray.push_local(&text);
                 MPClipboard::send(text);
@@ -37,7 +43,8 @@ fn main() -> Result<()> {
             }
         }
 
-        timer.tick(100);
+        timer.tick();
+        sleep(Duration::from_millis(TICK_IN_MS));
     }
 
     log::info!("exiting...");

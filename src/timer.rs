@@ -1,5 +1,3 @@
-use std::{thread::sleep, time::Duration};
-
 pub(crate) struct Timer {
     tick: u64,
 }
@@ -9,8 +7,7 @@ impl Timer {
         Self { tick: 0 }
     }
 
-    pub(crate) fn tick(&mut self, ms: u64) {
-        sleep(Duration::from_millis(ms));
+    pub(crate) fn tick(&mut self) {
         self.tick += 1;
     }
 
