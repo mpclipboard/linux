@@ -1,3 +1,4 @@
+mod buffer;
 mod event;
 mod state;
 

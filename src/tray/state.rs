@@ -1,10 +1,10 @@
-use crate::tray::event::TrayEvent;
+use crate::tray::{buffer::Buffer, event::TrayEvent};
 use std::sync::Arc;
 
 pub(crate) struct TrayState {
     connected: bool,
     exit: Arc<dyn Fn() + Send + Sync + 'static>,
-    events: Vec<TrayEvent>,
+    buffer: Buffer<5, TrayEvent>,
 }
 
 impl ksni::Tray for TrayState {
@@ -27,7 +27,7 @@ impl ksni::Tray for TrayState {
     fn menu(&self) -> Vec<ksni::MenuItem<Self>> {
         use ksni::menu::*;
 
-        self.events
+        self.buffer
             .iter()
             .map(MenuItem::from)
             .chain([
@@ -50,7 +50,7 @@ impl TrayState {
         Self {
             connected: false,
             exit: Arc::new(exit),
-            events: vec![],
+            buffer: Buffer::new(),
         }
     }
 
@@ -59,18 +59,11 @@ impl TrayState {
     }
 
     pub(crate) fn push_local(&mut self, text: &str) {
-        self.push(TrayEvent::PushedFromLocal(text.to_string()))
+        self.buffer
+            .push(TrayEvent::PushedFromLocal(text.to_string()))
     }
     pub(crate) fn push_received(&mut self, text: &str) {
-        self.push(TrayEvent::ReceivedFromServer(text.to_string()))
-    }
-
-    const MAX_EVENTS: usize = 5;
-
-    fn push(&mut self, event: TrayEvent) {
-        self.events.push(event);
-        if self.events.len() > Self::MAX_EVENTS {
-            self.events.remove(0);
-        }
+        self.buffer
+            .push(TrayEvent::ReceivedFromServer(text.to_string()))
     }
 }
