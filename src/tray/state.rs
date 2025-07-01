@@ -1,9 +1,10 @@
-use crate::tray::{buffer::Buffer, event::TrayEvent};
-use std::sync::Arc;
+use crate::{
+    exit::Exit,
+    tray::{buffer::Buffer, event::TrayEvent},
+};
 
 pub(crate) struct TrayState {
     connected: bool,
-    exit: Arc<dyn Fn() + Send + Sync + 'static>,
     buffer: Buffer<5, TrayEvent>,
 }
 
@@ -34,10 +35,7 @@ impl ksni::Tray for TrayState {
                 MenuItem::Separator,
                 MenuItem::Standard(StandardItem {
                     label: "Quit".to_string(),
-                    activate: {
-                        let exit = self.exit.clone();
-                        Box::new(move |_| exit())
-                    },
+                    activate: Box::new(|_| Exit::trigger()),
                     ..Default::default()
                 }),
             ])
@@ -46,10 +44,9 @@ impl ksni::Tray for TrayState {
 }
 
 impl TrayState {
-    pub(crate) fn new(exit: impl Fn() + Send + Sync + 'static) -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             connected: false,
-            exit: Arc::new(exit),
             buffer: Buffer::new(),
         }
     }

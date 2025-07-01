@@ -12,8 +12,8 @@ pub(crate) struct Tray {
 }
 
 impl Tray {
-    pub(crate) fn new(exit: impl Fn() + Send + Sync + 'static) -> Result<Self> {
-        let state = TrayState::new(exit);
+    pub(crate) fn new() -> Result<Self> {
+        let state = TrayState::new();
         let handle = state.spawn().context("failed to spawn Tray")?;
         Ok(Self { handle })
     }

@@ -12,17 +12,14 @@ mod tray;
 
 fn main() -> Result<()> {
     MPClipboard::start()?;
-    let exit = Exit::new()?;
+    Exit::setup_handler()?;
     let clipboard = LocalClipboard::new();
-    let tray = {
-        let exit = exit.clone();
-        Tray::new(move || exit.trigger())
-    }?;
+    let tray = Tray::new()?;
 
     let mut timer = Timer::new(Duration::from_millis(100));
 
     timer.add(1, move || {
-        if exit.received() {
+        if Exit::received() {
             ControlFlow::Break(())
         } else {
             ControlFlow::Continue(())
