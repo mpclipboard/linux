@@ -1,11 +1,10 @@
 use crate::{
-    exit_handler::ExitHandler, local_clipboard::LocalClipboard, mpclipboard::MPClipboard,
-    timer::Timer, tray::Tray,
+    exit::Exit, local_clipboard::LocalClipboard, mpclipboard::MPClipboard, timer::Timer, tray::Tray,
 };
 use anyhow::{Context as _, Result};
 use ksni::blocking::TrayMethods;
 
-mod exit_handler;
+mod exit;
 mod local_clipboard;
 mod mpclipboard;
 mod timer;
@@ -13,14 +12,17 @@ mod tray;
 
 fn main() -> Result<()> {
     MPClipboard::start()?;
-    let exit_handler = ExitHandler::new()?;
+    let exit = Exit::new()?;
     let mut clipboard = LocalClipboard::new();
-    let tray = Tray::new(exit_handler.clone())
-        .spawn()
-        .context("failed to spawn Tray")?;
+    let tray = {
+        let exit = exit.clone();
+        Tray::new(move || exit.trigger())
+    }
+    .spawn()
+    .context("failed to spawn Tray")?;
     let mut timer = Timer::new();
 
-    while exit_handler.keep_running() {
+    while exit.received() {
         if timer.passed(10) {
             if let Some(text) = clipboard.read()? {
                 tray.update(|tray| tray.push_local(&text));

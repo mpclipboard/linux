@@ -1,8 +1,8 @@
-use crate::exit_handler::ExitHandler;
+use std::sync::Arc;
 
 pub(crate) struct Tray {
     connected: bool,
-    exit: ExitHandler,
+    exit: Arc<dyn Fn() + Send + Sync + 'static>,
     events: Vec<TrayEvent>,
 }
 
@@ -54,7 +54,7 @@ impl ksni::Tray for Tray {
                     label: "Quit".to_string(),
                     activate: {
                         let exit = self.exit.clone();
-                        Box::new(move |_| exit.trigger_manually())
+                        Box::new(move |_| exit())
                     },
                     ..Default::default()
                 }),
@@ -64,10 +64,10 @@ impl ksni::Tray for Tray {
 }
 
 impl Tray {
-    pub(crate) fn new(exit: ExitHandler) -> Self {
+    pub(crate) fn new(exit: impl Fn() + Send + Sync + 'static) -> Self {
         Self {
             connected: false,
-            exit,
+            exit: Arc::new(exit),
             events: vec![],
         }
     }

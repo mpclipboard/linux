@@ -5,13 +5,13 @@ use std::sync::{
 };
 
 #[derive(Clone)]
-pub(crate) struct ExitHandler {
-    exit: Arc<AtomicBool>,
+pub(crate) struct Exit {
+    flag: Arc<AtomicBool>,
 }
 
-impl ExitHandler {
-    pub(crate) fn trigger_manually(&self) {
-        self.exit.store(false, Ordering::Relaxed);
+impl Exit {
+    pub(crate) fn trigger(&self) {
+        self.flag.store(true, Ordering::Relaxed);
     }
 
     pub(crate) fn new() -> Result<Self> {
@@ -23,10 +23,10 @@ impl ExitHandler {
                 .context("failed to set exit handler")?;
         }
 
-        Ok(Self { exit: flag })
+        Ok(Self { flag })
     }
 
-    pub(crate) fn keep_running(&self) -> bool {
-        !self.exit.load(Ordering::Relaxed)
+    pub(crate) fn received(&self) -> bool {
+        !self.flag.load(Ordering::Relaxed)
     }
 }
