@@ -1,11 +1,9 @@
-use crate::{
-    exit::Exit, local_clipboard::LocalClipboard, mpclipboard::MPClipboard, timer::Timer, tray::Tray,
-};
+use crate::{clipboard::Clipboard, exit::Exit, mpclipboard::MPClipboard, timer::Timer, tray::Tray};
 use anyhow::Result;
 use std::{ops::ControlFlow, time::Duration};
 
+mod clipboard;
 mod exit;
-mod local_clipboard;
 mod mpclipboard;
 mod timer;
 mod tray;
@@ -13,7 +11,7 @@ mod tray;
 fn main() -> Result<()> {
     MPClipboard::start()?;
     Exit::setup_handler()?;
-    let clipboard = LocalClipboard::new();
+    let clipboard = Clipboard::new();
     let tray = Tray::new()?;
 
     let mut timer = Timer::new(Duration::from_millis(100));

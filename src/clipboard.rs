@@ -1,12 +1,12 @@
 use anyhow::{Context as _, Result};
 use std::{cell::RefCell, io::Read as _, rc::Rc};
 
-pub(crate) struct LocalClipboard {
+pub(crate) struct Clipboard {
     last: Rc<RefCell<Option<String>>>,
     buf: Rc<RefCell<Vec<u8>>>,
 }
 
-impl LocalClipboard {
+impl Clipboard {
     pub(crate) fn new() -> Rc<Self> {
         Rc::new(Self {
             last: Rc::new(RefCell::new(None)),
