@@ -14,56 +14,79 @@ impl LocalClipboard {
         }
     }
 
-    pub(crate) fn read(&mut self) -> Result<Option<String>> {
-        use wl_clipboard_rs::{
-            paste::{ClipboardType, Error as PasteError, MimeType, Seat, get_contents},
-            utils::is_text,
+    pub(crate) fn read(&mut self) -> Option<String> {
+        let text = match read_text(&mut self.buf) {
+            Ok(text) => text?,
+            Err(err) => {
+                log::error!("{err:?}");
+                return None;
+            }
         };
 
-        let (mut reader, mime) =
-            match get_contents(ClipboardType::Regular, Seat::Unspecified, MimeType::Text) {
-                Ok(data) => data,
-                Err(PasteError::NoSeats | PasteError::ClipboardEmpty | PasteError::NoMimeType) => {
-                    return Ok(None);
-                }
-                Err(err) => {
-                    return Err(anyhow::Error::new(err).context("failed to get clipboard contents"));
-                }
-            };
-
-        if !is_text(&mime) {
-            return Ok(None);
-        }
-
-        self.buf.clear();
-        let len = reader
-            .read_to_end(&mut self.buf)
-            .context("failed to read clipboard contents")?;
-
-        let text = std::str::from_utf8(&self.buf[..len]).context("non-utf-8 clipboard contents")?;
-        if text.contains('\0') {
-            return Ok(None);
-        }
-
         if self.last.as_ref().is_some_and(|v| v == text) {
-            return Ok(None);
+            return None;
         }
 
         let text = text.to_string();
         self.last = Some(text.clone());
 
-        Ok(Some(text))
+        Some(text)
     }
 
-    pub(crate) fn write(&mut self, text: &str) -> Result<()> {
-        use wl_clipboard_rs::copy::{MimeType, Options, Source, copy};
-        let options = Options::default();
-        copy(
-            options,
-            Source::Bytes(text.to_string().into_bytes().into_boxed_slice()),
-            MimeType::Text,
-        )
-        .context("failed to write contents to clipboard")?;
-        Ok(())
+    pub(crate) fn write(&self, text: &str) {
+        if let Err(err) = write_text(text) {
+            log::error!("{err:?}");
+        }
     }
+}
+
+fn read_text(buf: &mut Vec<u8>) -> Result<Option<&str>> {
+    use wl_clipboard_rs::{
+        paste::{ClipboardType, Error as PasteError, MimeType, Seat, get_contents},
+        utils::is_text,
+    };
+
+    let clipboard = ClipboardType::Regular;
+    let seat = Seat::Unspecified;
+    let mime_type = MimeType::Text;
+
+    let (mut reader, mime) = match get_contents(clipboard, seat, mime_type) {
+        Ok(data) => data,
+        Err(PasteError::NoSeats | PasteError::ClipboardEmpty | PasteError::NoMimeType) => {
+            return Ok(None);
+        }
+        Err(err) => {
+            let err = anyhow::Error::from(err).context("failed to get clipboard contents");
+            return Err(err);
+        }
+    };
+
+    if !is_text(&mime) {
+        return Ok(None);
+    }
+
+    buf.clear();
+    let len = reader
+        .read_to_end(buf)
+        .context("failed to read clipboard contents")?;
+
+    let text = std::str::from_utf8(&buf[..len]).context("non-utf-8 clipboard contents")?;
+
+    if text.contains('\0') {
+        return Ok(None);
+    }
+
+    Ok(Some(text))
+}
+
+fn write_text(text: &str) -> Result<()> {
+    use wl_clipboard_rs::copy::{MimeType, Options, Source, copy};
+    let options = Options::default();
+    copy(
+        options,
+        Source::Bytes(text.to_string().into_bytes().into_boxed_slice()),
+        MimeType::Text,
+    )
+    .context("failed to write contents to clipboard")?;
+    Ok(())
 }

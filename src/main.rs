@@ -21,7 +21,7 @@ fn main() -> Result<()> {
 
     while exit.received() {
         if timer.passed(10) {
-            if let Some(text) = clipboard.read()? {
+            if let Some(text) = clipboard.read() {
                 tray.push_local(&text);
                 MPClipboard::send(text);
             }
@@ -31,7 +31,7 @@ fn main() -> Result<()> {
                 }
 
                 if let Some(text) = event.text {
-                    clipboard.write(&text)?;
+                    clipboard.write(&text);
                     tray.push_received(&text);
                 }
             }
