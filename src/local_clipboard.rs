@@ -1,21 +1,23 @@
 use anyhow::{Context as _, Result};
-use std::io::Read as _;
+use std::{cell::RefCell, io::Read as _, rc::Rc};
 
 pub(crate) struct LocalClipboard {
-    last: Option<String>,
-    buf: Vec<u8>,
+    last: Rc<RefCell<Option<String>>>,
+    buf: Rc<RefCell<Vec<u8>>>,
 }
 
 impl LocalClipboard {
-    pub(crate) fn new() -> Self {
-        Self {
-            last: None,
-            buf: vec![0; 1_024],
-        }
+    pub(crate) fn new() -> Rc<Self> {
+        Rc::new(Self {
+            last: Rc::new(RefCell::new(None)),
+            buf: Rc::new(RefCell::new(vec![0; 1_024])),
+        })
     }
 
-    pub(crate) fn read(&mut self) -> Option<String> {
-        let text = match read_text(&mut self.buf) {
+    pub(crate) fn read(&self) -> Option<String> {
+        let mut buf = self.buf.borrow_mut();
+
+        let text = match read_text(&mut buf) {
             Ok(text) => text?,
             Err(err) => {
                 log::error!("{err:?}");
@@ -23,12 +25,14 @@ impl LocalClipboard {
             }
         };
 
-        if self.last.as_ref().is_some_and(|v| v == text) {
+        let mut last = self.last.borrow_mut();
+
+        if last.as_ref().is_some_and(|v| v == text) {
             return None;
         }
 
         let text = text.to_string();
-        self.last = Some(text.clone());
+        *last = Some(text.clone());
 
         Some(text)
     }

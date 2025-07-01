@@ -27,6 +27,6 @@ impl Exit {
     }
 
     pub(crate) fn received(&self) -> bool {
-        !self.flag.load(Ordering::Relaxed)
+        self.flag.load(Ordering::Relaxed)
     }
 }

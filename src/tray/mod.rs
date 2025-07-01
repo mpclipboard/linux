@@ -6,6 +6,7 @@ use anyhow::{Context as _, Result};
 use ksni::blocking::{Handle, TrayMethods};
 use state::TrayState;
 
+#[derive(Clone)]
 pub(crate) struct Tray {
     handle: Handle<TrayState>,
 }
