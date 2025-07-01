@@ -1,38 +1,20 @@
+use crate::tray::event::TrayEvent;
 use std::sync::Arc;
 
-pub(crate) struct Tray {
+pub(crate) struct TrayState {
     connected: bool,
     exit: Arc<dyn Fn() + Send + Sync + 'static>,
     events: Vec<TrayEvent>,
 }
 
-enum TrayEvent {
-    PushedFromLocal(String),
-    ReceivedFromServer(String),
-}
-
-impl From<&TrayEvent> for ksni::menu::MenuItem<Tray> {
-    fn from(event: &TrayEvent) -> Self {
-        let label = match event {
-            TrayEvent::PushedFromLocal(text) => format!("-> {text}"),
-            TrayEvent::ReceivedFromServer(text) => format!("<- {text}"),
-        };
-        Self::Standard(ksni::menu::StandardItem {
-            label,
-            enabled: false,
-            ..Default::default()
-        })
-    }
-}
-
-impl ksni::Tray for Tray {
+impl ksni::Tray for TrayState {
     fn id(&self) -> String {
         "mpclipboard".to_string()
     }
 
     fn icon_pixmap(&self) -> Vec<ksni::Icon> {
-        const GREEN: &[u8] = include_bytes!("../assets/green-32x32.rgba");
-        const RED: &[u8] = include_bytes!("../assets/red-32x32.rgba");
+        const GREEN: &[u8] = include_bytes!("../../assets/green-32x32.rgba");
+        const RED: &[u8] = include_bytes!("../../assets/red-32x32.rgba");
         let bytes = if self.connected { GREEN } else { RED };
 
         vec![ksni::Icon {
@@ -63,7 +45,7 @@ impl ksni::Tray for Tray {
     }
 }
 
-impl Tray {
+impl TrayState {
     pub(crate) fn new(exit: impl Fn() + Send + Sync + 'static) -> Self {
         Self {
             connected: false,
