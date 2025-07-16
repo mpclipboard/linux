@@ -721,7 +721,6 @@ dependencies = [
  "ksni",
  "log",
  "mpclipboard-generic-client",
- "once_cell",
  "signal-hook",
  "wl-clipboard-rs",
 ]

@@ -1,11 +1,12 @@
 use crate::{
-    exit::Exit,
+    exit::ExitHandler,
     tray::{buffer::Buffer, event::TrayEvent},
 };
 
 pub(crate) struct TrayState {
     connected: bool,
     buffer: Buffer<5, TrayEvent>,
+    exit: ExitHandler,
 }
 
 impl ksni::Tray for TrayState {
@@ -28,6 +29,7 @@ impl ksni::Tray for TrayState {
     fn menu(&self) -> Vec<ksni::MenuItem<Self>> {
         use ksni::menu::*;
 
+        let exit = self.exit.clone();
         self.buffer
             .iter()
             .map(MenuItem::from)
@@ -35,7 +37,7 @@ impl ksni::Tray for TrayState {
                 MenuItem::Separator,
                 MenuItem::Standard(StandardItem {
                     label: "Quit".to_string(),
-                    activate: Box::new(|_| Exit::trigger()),
+                    activate: Box::new(move |_| exit.trigger()),
                     ..Default::default()
                 }),
             ])
@@ -44,10 +46,11 @@ impl ksni::Tray for TrayState {
 }
 
 impl TrayState {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(exit: ExitHandler) -> Self {
         Self {
             connected: false,
             buffer: Buffer::new(),
+            exit,
         }
     }
 
