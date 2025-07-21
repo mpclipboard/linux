@@ -1,12 +1,10 @@
-use crate::{
-    exit::ExitHandler,
-    tray::{buffer::Buffer, event::TrayEvent},
-};
+use crate::tray::{buffer::Buffer, line::Line};
+use tokio_util::sync::CancellationToken;
 
 pub(crate) struct TrayState {
-    connected: bool,
-    buffer: Buffer<5, TrayEvent>,
-    exit: ExitHandler,
+    pub(crate) connected: bool,
+    pub(crate) buffer: Buffer<5, Line>,
+    token: CancellationToken,
 }
 
 impl ksni::Tray for TrayState {
@@ -29,7 +27,6 @@ impl ksni::Tray for TrayState {
     fn menu(&self) -> Vec<ksni::MenuItem<Self>> {
         use ksni::menu::*;
 
-        let exit = self.exit.clone();
         self.buffer
             .iter()
             .map(MenuItem::from)
@@ -37,7 +34,10 @@ impl ksni::Tray for TrayState {
                 MenuItem::Separator,
                 MenuItem::Standard(StandardItem {
                     label: "Quit".to_string(),
-                    activate: Box::new(move |_| exit.trigger()),
+                    activate: Box::new({
+                        let token = self.token.clone();
+                        move |_| token.cancel()
+                    }),
                     ..Default::default()
                 }),
             ])
@@ -46,24 +46,11 @@ impl ksni::Tray for TrayState {
 }
 
 impl TrayState {
-    pub(crate) fn new(exit: ExitHandler) -> Self {
+    pub(crate) fn new(token: CancellationToken) -> Self {
         Self {
             connected: false,
             buffer: Buffer::new(),
-            exit,
+            token,
         }
-    }
-
-    pub(crate) fn set_connectivity(&mut self, connectivity: bool) {
-        self.connected = connectivity;
-    }
-
-    pub(crate) fn push_local(&mut self, text: &str) {
-        self.buffer
-            .push(TrayEvent::PushedFromLocal(text.to_string()))
-    }
-    pub(crate) fn push_received(&mut self, text: &str) {
-        self.buffer
-            .push(TrayEvent::ReceivedFromServer(text.to_string()))
     }
 }

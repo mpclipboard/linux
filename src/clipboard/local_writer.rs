@@ -1,11 +1,11 @@
 use anyhow::{Context as _, Result};
 
-pub(crate) struct ClipboardWriter;
+pub(crate) struct LocalWriter;
 
-impl ClipboardWriter {
+impl LocalWriter {
     pub(crate) fn write(text: &str) {
         if let Err(err) = Self::try_write_text(text) {
-            log::error!("{err:?}");
+            log::error!(target: "LocalWriter", "{err:?}");
         }
     }
 

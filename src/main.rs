@@ -1,40 +1,71 @@
 use crate::{
-    clipboard::Clipboard,
-    exit::ExitActor,
-    mpclipboard::{MPClipboard, MPClipboardActor},
-    timer::Timer,
+    clipboard::{LocalReader, LocalWriter},
+    mpclipboard::MPClipboard,
     tray::Tray,
 };
-use anyhow::Result;
-use std::time::Duration;
+use anyhow::{Context as _, Result};
+use mpclipboard_generic_client::Event as MPClipboardEvent;
+use tokio::signal::unix::SignalKind;
+use tokio_util::sync::CancellationToken;
 
 mod clipboard;
-mod exit;
 mod mpclipboard;
-mod timer;
 mod tray;
 
-fn main() -> Result<()> {
-    let exit = ExitActor::new();
-    exit.handler().setup_handler()?;
+#[tokio::main]
+async fn main() -> Result<()> {
+    let token = CancellationToken::new();
 
-    let tray = Tray::spawn(exit.handler())?;
+    let mut mpclipboard = MPClipboard::spawn();
+    let tray = Tray::spawn(token.clone()).await?;
+    let mut listener = LocalReader::spawn(token.clone()).await;
 
-    MPClipboard::setup();
-    MPClipboard::start();
-    let mpclipboard = MPClipboardActor::new(tray.clone());
+    let mut sigterm = tokio::signal::unix::signal(SignalKind::terminate())
+        .context("failed to construct SIGTERM handler")?;
+    let mut sigint = tokio::signal::unix::signal(SignalKind::interrupt())
+        .context("failed to construct SIGINT handler")?;
 
-    let clipboard = Clipboard::new(tray.clone());
+    loop {
+        tokio::select! {
+            Some(event) = mpclipboard.recv() => {
+                log::info!(target: "MPClipboard", "{event:?}");
 
-    let mut timer = Timer::new(Duration::from_millis(100));
+                match event {
+                    MPClipboardEvent::ConnectivityChanged(connectivity) => {
+                        tray.set_connectivity(connectivity).await;
+                    }
+                    MPClipboardEvent::NewClip(clip) => {
+                        LocalWriter::write(&clip.text);
+                        tray.push_received(&clip.text).await;
+                    }
+                }
+            }
 
-    timer.add(Duration::from_millis(100), exit);
-    timer.add(Duration::from_millis(100), mpclipboard);
-    timer.add(Duration::from_secs(1), clipboard);
+            Some(text) = listener.recv() => {
+                log::info!(target: "LocalReader", "{text}");
+                mpclipboard.send(&text).await?;
+                tray.push_sent(&text).await;
+            }
 
-    timer.start()?;
-    log::info!("exiting...");
-    MPClipboard::stop();
+            _ = sigterm.recv() => {
+                log::info!("SIGTERM received...");
+                token.cancel();
+            }
+            _ = sigint.recv() => {
+                log::info!("SIGINT received...");
+                token.cancel();
+            }
+
+            _ = token.cancelled() => {
+                log::info!("exiting...");
+                break;
+            }
+        }
+    }
+
+    mpclipboard.stop().await?;
+    tray.stop().await;
+    listener.wait().await?;
 
     Ok(())
 }

@@ -1,34 +1,44 @@
 mod buffer;
-mod event;
+mod line;
 mod state;
 
-use crate::exit::ExitHandler;
 use anyhow::{Context as _, Result};
-use ksni::blocking::{Handle, TrayMethods};
+use ksni::{Handle, TrayMethods};
+use line::Line;
 use state::TrayState;
+use tokio_util::sync::CancellationToken;
 
-#[derive(Clone)]
 pub(crate) struct Tray {
     handle: Handle<TrayState>,
 }
 
 impl Tray {
-    pub(crate) fn spawn(exit: ExitHandler) -> Result<Self> {
-        let state = TrayState::new(exit);
-        let handle = state.spawn().context("failed to spawn Tray")?;
+    pub(crate) async fn spawn(token: CancellationToken) -> Result<Self> {
+        let state = TrayState::new(token);
+        let handle = state.spawn().await.context("failed to spawn Tray")?;
         Ok(Self { handle })
     }
 
-    pub(crate) fn push_local(&self, text: &str) {
-        self.handle.update(|state| state.push_local(text));
-    }
-
-    pub(crate) fn push_received(&self, text: &str) {
-        self.handle.update(|state| state.push_received(text));
-    }
-
-    pub(crate) fn set_connectivity(&self, connectivity: bool) {
+    pub(crate) async fn push_sent(&self, text: &str) {
         self.handle
-            .update(|state| state.set_connectivity(connectivity));
+            .update(|state| state.buffer.push(Line::Sent(text.to_string())))
+            .await;
+    }
+
+    pub(crate) async fn push_received(&self, text: &str) {
+        self.handle
+            .update(|state| state.buffer.push(Line::Received(text.to_string())))
+            .await;
+    }
+
+    pub(crate) async fn set_connectivity(&self, connectivity: bool) {
+        self.handle
+            .update(|state| state.connected = connectivity)
+            .await;
+    }
+
+    pub(crate) async fn stop(self) {
+        log::info!(target: "Tray", "stopping...");
+        self.handle.shutdown().await;
     }
 }
