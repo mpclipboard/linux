@@ -5,7 +5,8 @@ use crate::{
 };
 use anyhow::{Context as _, Result};
 use mpclipboard_generic_client::Event as MPClipboardEvent;
-use tokio::signal::unix::SignalKind;
+use std::time::Duration;
+use tokio::{signal::unix::SignalKind, time::timeout};
 use tokio_util::sync::CancellationToken;
 
 mod clipboard;
@@ -63,9 +64,15 @@ async fn main() -> Result<()> {
         }
     }
 
-    mpclipboard.stop().await?;
-    tray.stop().await;
-    listener.wait().await?;
+    if let Err(_) = timeout(Duration::from_secs(5), mpclipboard.stop()).await {
+        log::warn!("MPClipboard shutdown timed out after 5 seconds");
+    }
+    if let Err(_) = timeout(Duration::from_secs(5), tray.stop()).await {
+        log::warn!("Tray shutdown timed out after 5 seconds");
+    }
+    if let Err(_) = timeout(Duration::from_secs(5), listener.wait()).await {
+        log::warn!("LocalReader shutdown timed out after 5 seconds");
+    }
 
     Ok(())
 }

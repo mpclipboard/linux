@@ -50,6 +50,7 @@ impl LocalReader {
                             }
                             Err(err) => {
                                 log::error!(target: "LocalReader", "{err:?}");
+                                break;
                             }
                         }
                     }
