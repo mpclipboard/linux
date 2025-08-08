@@ -1,8 +1,0 @@
-[Unit]
-Description=MPClipboard Client
-
-[Service]
-ExecStart=mpclipboard-client
-WorkingDirectory=%h
-Restart=on-failure
-RestartSec=5s

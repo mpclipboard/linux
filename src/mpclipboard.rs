@@ -56,8 +56,8 @@ impl MPClipboard {
         Ok(())
     }
 
-    pub(crate) async fn send(&self, text: &str) -> Result<()> {
-        let command = Command::NewClip(Clip::new(text.to_string()));
+    pub(crate) async fn send(&self, clip: Clip) -> Result<()> {
+        let command = Command::NewClip(clip);
         self.ctx
             .send(command)
             .await
