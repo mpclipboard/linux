@@ -397,10 +397,46 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42703706b716c37f96a77aea830392ad231f44c9e9a67872fa5548707e11b11c"
 
 [[package]]
+name = "futures"
+version = "0.3.31"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "65bc07b1a8bc7c85c5f2e110c476c7389b4554ba72af57d8445ea63a576b0876"
+dependencies = [
+ "futures-channel",
+ "futures-core",
+ "futures-executor",
+ "futures-io",
+ "futures-sink",
+ "futures-task",
+ "futures-util",
+]
+
+[[package]]
+name = "futures-channel"
+version = "0.3.31"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2dff15bf788c671c1934e366d07e30c1814a8ef514e1af724a602e8a2fbe1b10"
+dependencies = [
+ "futures-core",
+ "futures-sink",
+]
+
+[[package]]
 name = "futures-core"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05f29059c0c2090612e8d742178b0580d2dc940c837851ad723096f87af6663e"
+
+[[package]]
+name = "futures-executor"
+version = "0.3.31"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e28d1d997f585e54aebc3f97d39e72338912123a67330d723fdbb564d646c9f"
+dependencies = [
+ "futures-core",
+ "futures-task",
+ "futures-util",
+]
 
 [[package]]
 name = "futures-io"
@@ -450,10 +486,13 @@ version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9fa08315bb612088cc391249efdc3bc77536f16c91f6cf495e6fbe85b20a4a81"
 dependencies = [
+ "futures-channel",
  "futures-core",
+ "futures-io",
  "futures-macro",
  "futures-sink",
  "futures-task",
+ "memchr",
  "pin-project-lite",
  "pin-utils",
  "slab",
@@ -490,9 +529,9 @@ checksum = "07e28edb80900c19c28f1072f2e8aeca7fa06b23cd4169cefe1af5aa3260783f"
 
 [[package]]
 name = "glob"
-version = "0.3.2"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8d1add55171497b4705a648c6b583acafb01d58050a51727785f0b2c8e0a2b2"
+checksum = "0cc23270f6e1808e30a928bdc84dea0b9b4136a8bc82338574f23baf47bbd280"
 
 [[package]]
 name = "hashbrown"
@@ -530,6 +569,16 @@ dependencies = [
  "bytes",
  "fnv",
  "itoa",
+]
+
+[[package]]
+name = "http-serde"
+version = "2.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f056c8559e3757392c8d091e796416e4649d8e49e88b8d76df6c002f05027fd"
+dependencies = [
+ "http",
+ "serde",
 ]
 
 [[package]]
@@ -650,9 +699,9 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
 name = "libc"
-version = "0.2.174"
+version = "0.2.175"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1171693293099992e19cddea4e8b849964e9846f4acee11b3948bcc337be8776"
+checksum = "6a82ae493e598baaea5209805c49bbf2ea7de956d50d7da0da1164f9c6d28543"
 
 [[package]]
 name = "libloading"
@@ -740,7 +789,6 @@ dependencies = [
  "anyhow",
  "ksni",
  "log",
- "mpclipboard-common",
  "mpclipboard-generic-client",
  "os_pipe",
  "tokio",
@@ -752,35 +800,25 @@ dependencies = [
 ]
 
 [[package]]
-name = "mpclipboard-common"
-version = "0.1.0"
-source = "git+https://github.com/mpclipboard/common.git#b53b438e9c4b04bc46aad333924efaeb179720ad"
-dependencies = [
- "anyhow",
- "serde",
- "serde_json",
- "tokio-websockets",
-]
-
-[[package]]
 name = "mpclipboard-generic-client"
 version = "0.1.0"
-source = "git+https://github.com/mpclipboard/generic-client.git#f11274c4b3bbd4a0d4a6abb4bba648eb92512446"
+source = "git+https://github.com/mpclipboard/generic-client.git?tag=v0.1.0#8e3ffc37a0bd7b7449ccec30f7c4bf55a5fbaf3e"
 dependencies = [
  "android_logger",
  "anyhow",
- "futures-util",
+ "futures",
  "http",
+ "http-serde",
  "jni",
  "log",
- "mpclipboard-common",
- "pin-project-lite",
  "pretty_env_logger",
  "rustls",
  "rustls-platform-verifier",
  "serde",
+ "serde_json",
  "tokio",
  "tokio-rustls",
+ "tokio-util",
  "tokio-websockets",
  "toml",
 ]
@@ -943,9 +981,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.95"
+version = "1.0.96"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02b3e5e68a3a1a02aad3ec490a98007cbc13c37cbe84a3cd7b8e406d76e7f778"
+checksum = "beef09f85ae72cea1ef96ba6870c51e6382ebfa4f0e85b643459331f3daa5be0"
 dependencies = [
  "unicode-ident",
 ]
@@ -1456,10 +1494,12 @@ version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75129e1dc5000bfbaa9fee9d1b21f974f9fbad9daec557a521ee6e080825f6e8"
 dependencies = [
+ "indexmap",
  "serde",
  "serde_spanned",
  "toml_datetime 0.7.0",
  "toml_parser",
+ "toml_writer",
  "winnow",
 ]
 
@@ -1499,6 +1539,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "toml_writer"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fcc842091f2def52017664b53082ecbbeb5c7731092bad69d2c63050401dfd64"
+
+[[package]]
 name = "tracing"
 version = "0.1.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1531,11 +1577,10 @@ dependencies = [
 
 [[package]]
 name = "tree_magic_mini"
-version = "3.1.6"
+version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aac5e8971f245c3389a5a76e648bfc80803ae066a1243a75db0064d7c1129d63"
+checksum = "f943391d896cdfe8eec03a04d7110332d445be7df856db382dd96a730667562c"
 dependencies = [
- "fnv",
  "memchr",
  "nom",
  "once_cell",

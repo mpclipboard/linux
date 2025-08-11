@@ -4,8 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-mpclipboard-generic-client = { git = "https://github.com/mpclipboard/generic-client.git" }
-mpclipboard-common = { git = "https://github.com/mpclipboard/common.git" }
+mpclipboard-generic-client = { git = "https://github.com/mpclipboard/generic-client.git", tag = "v0.1.0" }
 
 ksni = { version = "0.3" }
 log = "0.4"
