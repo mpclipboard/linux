@@ -173,11 +173,11 @@ impl State {
             let len = reader
                 .read_to_end(&mut buf)
                 .context("failed to read from pipe")?;
-            if len > 0 {
-                if let Ok(string) = String::from_utf8(buf) {
-                    return Ok(Some(string));
-                };
-            }
+            if len > 0
+                && let Ok(string) = String::from_utf8(buf)
+            {
+                return Ok(Some(string));
+            };
         }
 
         Ok(None)
