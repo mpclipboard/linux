@@ -264,7 +264,7 @@ impl Dispatch<ZwlrDataControlDeviceV1, ()> for State {
                     return;
                 }
             };
-            offer.receive(String::from("TEXT"), writer.as_fd());
+            offer.receive(String::from("text/plain;charset=utf-8"), writer.as_fd());
             state.reader = Some(reader);
         }
     }
